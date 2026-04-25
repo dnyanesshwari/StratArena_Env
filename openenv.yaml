@@ -1,0 +1,57 @@
+name: stratarena
+version: "1.0.0"
+
+description: >
+  StratArena is an OpenEnv-compatible multi-agent reinforcement learning
+  environment for theory-of-mind training under uncertainty. The learner
+  competes for limited resources against opponents with hidden budgets and
+  shifting strategies, and must infer hidden state from observable behavior.
+
+author: TechnoAIGirls
+license: MIT
+
+tags:
+  - openenv
+  - reinforcement-learning
+  - multi-agent
+  - theory-of-mind
+  - partial-observability
+  - strategic-reasoning
+
+environment:
+  class: StratArenaEnvironment
+  module: server.stratarena_environment
+  action_type: StratArenaAction
+  observation_type: StratArenaObservation
+
+tasks:
+  - id: basic_competition
+    name: balanced_strategy_learning
+    description: Learn to balance value capture and budget discipline in a stable arena.
+    difficulty: easy
+    max_steps: 50
+    score_range: [0.0, 1.0]
+
+  - id: opponent_exploitation
+    name: exploit_weak_opponents
+    description: Infer weak or depleted opponents and spend aggressively only in those windows.
+    difficulty: medium
+    max_steps: 50
+    score_range: [0.0, 1.0]
+
+  - id: adaptive_strategy
+    name: dynamic_opponent_adaptation
+    description: Update beliefs and adapt after a mid-episode opponent regime shift.
+    difficulty: hard
+    max_steps: 50
+    score_range: [0.0, 1.0]
+
+endpoints:
+  reset: /reset
+  step: /step
+  state: /state
+  health: /health
+
+server:
+  host: "0.0.0.0"
+  port: 8000

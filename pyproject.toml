@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-stratarena"
+version = "1.0.0"
+description = "StratArena theory-of-mind multi-agent environment for OpenEnv"
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core[core]>=0.2.2",
+    "openai>=2.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+server = "server.app:main"
+inference = "inference:main"
+
+[tool.setuptools]
+include-package-data = true
+py-modules = ["models", "client", "evaluate_tasks", "app", "inference"]
+
+[tool.setuptools.packages.find]
+include = ["server*", "training*", "evaluation*"]
