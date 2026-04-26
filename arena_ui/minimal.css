@@ -383,23 +383,105 @@ h3 {
   box-shadow: 0 0 24px rgba(251, 191, 36, 0.08);
 }
 
-.trophy {
-  font-size: 48px;
+.winner-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+  margin-top: 8px;
+}
+
+.winner-agent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.25s ease, opacity 0.25s ease, filter 0.25s ease, box-shadow 0.25s ease;
+}
+
+.winner-agent-smart {
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.winner-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.winner-icon {
+  font-size: 42px;
   line-height: 1;
-  margin-bottom: 8px;
   animation: trophyPulse 2.2s ease-in-out infinite;
 }
 
-#winner-name {
-  margin: 4px 0;
+.winner-agent-name {
   font-weight: 700;
   font-size: 13px;
+  color: #e8edf5;
 }
 
-.winner-prize {
-  font-size: 10px;
+.winner-agent-value {
+  font-size: 11px;
   color: #a0aec0;
-  margin-top: 4px;
+}
+
+.winner-agent-active {
+  transform: scale(1.08);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.18);
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.winner-agent-active .winner-icon {
+  font-size: 58px;
+}
+
+.winner-agent-muted {
+  transform: scale(0.9);
+  opacity: 0.45;
+  filter: grayscale(0.25);
+}
+
+.rl-badge {
+  position: absolute;
+  top: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  opacity: 0.2;
+  transform: scale(0.85);
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rl-badge-plus {
+  right: -12px;
+  background: rgba(74, 222, 128, 0.16);
+  color: #86efac;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.rl-badge-minus {
+  left: -12px;
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.rl-badge-active {
+  opacity: 1;
+  transform: scale(1.08);
+  box-shadow: 0 0 16px currentColor;
 }
 
 .tom-box, .signals-box {

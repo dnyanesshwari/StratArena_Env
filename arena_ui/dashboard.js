@@ -175,8 +175,6 @@ function updateUI(round) {
   updateWinnerEffects(safeRound.winner);
   updateProgress(safeRound.step, safeRound.max_steps);
 
-  const trophy = { aggressive: '🔴', conservative: '🔵', me: '⭐', none: '—' }[safeRound.winner] || '—';
-  document.getElementById('trophy').textContent = trophy;
   const winnerNames = { aggressive: 'Aggressive Agent', conservative: 'Conservative Agent', me: 'Smart Agent', none: 'None' };
   document.getElementById('winner-name').textContent = winnerNames[safeRound.winner] || 'None';
   if (safeRound.winner !== 'none' && safeRound.resource_value) {
@@ -184,6 +182,9 @@ function updateUI(round) {
   } else {
     document.getElementById('winner-prize').textContent = '—';
   }
+  document.getElementById('winner-agg-value').textContent = safeRound.agg_bid?.toFixed(1) || '—';
+  document.getElementById('winner-con-value').textContent = safeRound.con_bid?.toFixed(1) || '—';
+  updateRlBadges(safeRound.reward || 0);
 
   document.getElementById('resource-val').textContent = safeRound.resource_value?.toFixed(1) || '—';
   document.getElementById('scarcity').textContent = safeRound.scarcity?.toFixed(2) || '—';
@@ -266,9 +267,26 @@ function updateWinnerEffects(winner) {
   const winnerMap = { aggressive: 'agg', conservative: 'con', me: 'sm' };
   ['agg', 'con', 'sm'].forEach((id) => {
     document.getElementById(`box-${id}`).classList.remove('winner-active');
+    document.getElementById(`winner-${id}`).classList.remove('winner-agent-active', 'winner-agent-muted');
   });
   if (winnerMap[winner]) {
-    document.getElementById(`box-${winnerMap[winner]}`).classList.add('winner-active');
+    const activeId = winnerMap[winner];
+    document.getElementById(`box-${activeId}`).classList.add('winner-active');
+    ['agg', 'con', 'sm'].forEach((id) => {
+      document.getElementById(`winner-${id}`).classList.add(id === activeId ? 'winner-agent-active' : 'winner-agent-muted');
+    });
+  }
+}
+
+function updateRlBadges(reward) {
+  const plus = document.getElementById('rlPlus');
+  const minus = document.getElementById('rlMinus');
+  plus.classList.remove('rl-badge-active');
+  minus.classList.remove('rl-badge-active');
+  if (reward > 0.15) {
+    plus.classList.add('rl-badge-active');
+  } else if (reward < -0.15) {
+    minus.classList.add('rl-badge-active');
   }
 }
 
@@ -365,6 +383,7 @@ function resetUI() {
   document.getElementById('round-num').textContent = `0 / ${getConfiguredRounds()}`;
   updateProgress(0, getConfiguredRounds());
   updateWinnerEffects('none');
+  updateRlBadges(0);
 }
 
 function initCharts() {
