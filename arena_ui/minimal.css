@@ -1,0 +1,516 @@
+/* MINIMAL TRUTHFUL CSS - shows what actually happens in StratArena */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #0f1419 0%, #1a202c 100%);
+  color: #e8edf5;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ─────────────────────────────────────────── HEADER ─────────────────────────────────────────── */
+.top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.top-bar h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #60a5fa;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #a0aec0;
+  letter-spacing: 0.5px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.controls > div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.controls label {
+  font-size: 12px;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+select, .btn-primary, .btn-secondary {
+  padding: 8px 14px;
+  background: #2d3748;
+  border: 1px solid #4b5563;
+  color: #e8edf5;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+select:hover, .btn-secondary:hover {
+  background: #374151;
+  border-color: #60a5fa;
+}
+
+.btn-primary {
+  background: #60a5fa;
+  color: #fff;
+  border-color: #60a5fa;
+}
+
+.btn-primary:hover {
+  background: #3b82f6;
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.status {
+  font-size: 11px;
+  color: #4ade80;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* ─────────────────────────────────────────── MAIN GRID ─────────────────────────────────────────── */
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr 320px;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1400px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+h3 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 8px;
+}
+
+/* ─────────────────────────────────────────── AGENTS PANEL ─────────────────────────────────────────── */
+
+.agents-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agent-box {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 14px;
+  flex: 1;
+  transition: all 0.3s;
+}
+
+.agent-box:hover {
+  border-color: #4b5563;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.agent-box-smart {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, #162d6d30 0%, #2d3748 100%);
+}
+
+.agent-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: #e8edf5;
+  margin-bottom: 8px;
+}
+
+.bid-display {
+  font-size: 36px;
+  font-weight: 900;
+  color: #60a5fa;
+  line-height: 1;
+  margin: 6px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.bid-label {
+  font-size: 10px;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.budget-bar {
+  height: 8px;
+  background: #2d3748;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 6px 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #10b981);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.budget-label {
+  font-size: 10px;
+  color: #a0aec0;
+  margin-bottom: 6px;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #a0aec0;
+  border-top: 1px solid #374151;
+  padding-top: 8px;
+}
+
+.stats span strong {
+  color: #e8edf5;
+  font-weight: 600;
+}
+
+.strategy-box {
+  margin-top: 10px;
+  padding: 8px;
+  background: #2d3748;
+  border-radius: 6px;
+  border: 1px solid #4b5563;
+}
+
+.strategy-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #718096;
+  letter-spacing: 0.5px;
+}
+
+.strategy-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-top: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ─────────────────────────────────────────── AUCTION PANEL ─────────────────────────────────────────── */
+
+.auction-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.round-info, .tom-box, .signals-box {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.round-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-row span {
+  font-size: 10px;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.info-row strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e8edf5;
+  font-family: 'Courier New', monospace;
+}
+
+.winner-box {
+  text-align: center;
+  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px solid #fbbf24;
+}
+
+.trophy {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+#winner-name {
+  margin: 4px 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.winner-prize {
+  font-size: 10px;
+  color: #a0aec0;
+  margin-top: 4px;
+}
+
+.tom-box, .signals-box {
+  border-color: #4b5563;
+}
+
+.tom-note {
+  font-size: 10px;
+  color: #718096;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+#tom-table {
+  width: 100%;
+  font-size: 10px;
+  border-collapse: collapse;
+}
+
+#tom-table th {
+  padding: 6px 4px;
+  border-bottom: 1px solid #374151;
+  text-align: left;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#tom-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid #2d3748;
+  font-family: 'Courier New', monospace;
+}
+
+#tom-table td:first-child {
+  font-weight: 500;
+  color: #a0aec0;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #a0aec0;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.signal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.signal-row span:first-child {
+  color: #a0aec0;
+  min-width: 100px;
+}
+
+.signal-bar {
+  flex: 1;
+  height: 6px;
+  background: #2d3748;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.signal-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.signal-row strong {
+  font-family: 'Courier New', monospace;
+  color: #fbbf24;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ─────────────────────────────────────────── METRICS PANEL ─────────────────────────────────────────── */
+
+.metrics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reward-breakdown, .metrics-box, .strategy-transitions {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.reward-row, .metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.reward-row span:first-child, .metric-row span {
+  color: #a0aec0;
+  min-width: 120px;
+}
+
+.bar-container {
+  flex: 1;
+  height: 6px;
+  background: #2d3748;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.reward-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #10b981);
+  transition: width 0.4s ease;
+}
+
+.reward-bar.penalty {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.reward-row strong, .metric-row strong {
+  font-family: 'Courier New', monospace;
+  color: #60a5fa;
+  min-width: 50px;
+  text-align: right;
+}
+
+.total-reward {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #374151;
+  text-align: center;
+  font-weight: 600;
+}
+
+.total-val {
+  color: #4ade80 !important;
+  font-size: 14px !important;
+}
+
+.transitions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transition-item {
+  padding: 6px;
+  background: #2d3748;
+  border-left: 3px solid #60a5fa;
+  font-size: 10px;
+  color: #a0aec0;
+  border-radius: 2px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ─────────────────────────────────────────── CHARTS ─────────────────────────────────────────── */
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1000px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
+
+.chart-container {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chart-container h3 {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+canvas {
+  max-height: 220px;
+  display: block;
+}
+
+/* ─────────────────────────────────────────── ANIMATIONS ──────────────────────────���──────────────── */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status {
+  animation: pulse 1.5s ease-in-out infinite;
+}

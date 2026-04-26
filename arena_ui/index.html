@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>StratArena — Multi-Agent RL Demo</title>
+<link rel="stylesheet" href="/static/minimal.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+</head>
+<body>
+
+<div class="app">
+  <header class="top-bar">
+    <h1>StratArena</h1>
+    <div class="subtitle">Multi-Agent RL Environment with Theory-of-Mind</div>
+    <div class="controls">
+      <div>
+        <label>Task:</label>
+        <select id="taskSel" onchange="onTaskChange()">
+          <option value="easy">Easy (Stable)</option>
+          <option value="medium" selected>Medium (Variable)</option>
+          <option value="hard">Hard (Regime Shift)</option>
+        </select>
+      </div>
+      <button onclick="startEpisode()" class="btn-primary">Start</button>
+      <button id="stepBtn" onclick="stepOne()" disabled class="btn-primary">Next Step</button>
+      <button onclick="resetUI()" class="btn-secondary">Reset</button>
+      <span id="status" class="status"></span>
+    </div>
+  </header>
+
+  <div class="main-grid">
+    
+    <!-- LEFT: Three agents side by side -->
+    <div class="agents-panel">
+      <h3>Auction Participants</h3>
+      <div class="agent-box" id="box-agg">
+        <div class="agent-title">🔴 Aggressive Agent</div>
+        <div class="bid-display" id="bid-agg">—</div>
+        <div class="bid-label">Current Bid</div>
+        <div class="budget-bar">
+          <div class="fill" id="fill-agg"></div>
+        </div>
+        <div class="budget-label" id="budget-label-agg">Budget: 0%</div>
+        <div class="stats">
+          <span>Wins: <strong id="wins-agg">0</strong></span>
+          <span>Budget Left: <strong id="budget-agg">500</strong></span>
+        </div>
+      </div>
+
+      <div class="agent-box" id="box-con">
+        <div class="agent-title">🔵 Conservative Agent</div>
+        <div class="bid-display" id="bid-con">—</div>
+        <div class="bid-label">Current Bid</div>
+        <div class="budget-bar">
+          <div class="fill" id="fill-con"></div>
+        </div>
+        <div class="budget-label" id="budget-label-con">Budget: 0%</div>
+        <div class="stats">
+          <span>Wins: <strong id="wins-con">0</strong></span>
+          <span>Budget Left: <strong id="budget-con">500</strong></span>
+        </div>
+      </div>
+
+      <div class="agent-box agent-box-smart" id="box-sm">
+        <div class="agent-title">⭐ Smart Agent (RL+LLM)</div>
+        <div class="bid-display" id="bid-sm">—</div>
+        <div class="bid-label">Current Bid</div>
+        <div class="budget-bar">
+          <div class="fill" id="fill-sm"></div>
+        </div>
+        <div class="budget-label" id="budget-label-sm">Budget: 0%</div>
+        <div class="stats">
+          <span>Wins: <strong id="wins-sm">0</strong></span>
+          <span>Budget Left: <strong id="budget-sm">500</strong></span>
+        </div>
+        <div class="strategy-box" id="strategy-box">
+          <div class="strategy-label">Strategy Mode:</div>
+          <div class="strategy-value" id="strategy">PROBE</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: Auction results & ToM beliefs -->
+    <div class="auction-panel">
+      <h3>Auction Round Info</h3>
+      <div class="round-info">
+        <div class="info-row">
+          <span>Round</span>
+          <strong id="round-num">0 / 50</strong>
+        </div>
+        <div class="info-row">
+          <span>Phase</span>
+          <strong id="phase">early</strong>
+        </div>
+        <div class="info-row">
+          <span>Resource Value</span>
+          <strong id="resource-val">—</strong>
+        </div>
+        <div class="info-row">
+          <span>Scarcity</span>
+          <strong id="scarcity">—</strong>
+        </div>
+        <div class="info-row">
+          <span>Market Pressure</span>
+          <strong id="market-press">—</strong>
+        </div>
+      </div>
+
+      <div class="winner-box">
+        <div class="label">This Round Winner</div>
+        <div class="trophy" id="trophy">—</div>
+        <div id="winner-name">—</div>
+        <div id="winner-prize" class="winner-prize">—</div>
+      </div>
+
+      <div class="tom-box">
+        <div class="label">Theory-of-Mind: What Smart Agent Believes</div>
+        <div class="tom-note">Smart agent infers opponent budgets and strategy from observing bids</div>
+        <table id="tom-table">
+          <tr>
+            <th>Opponent</th>
+            <th>Budget Belief</th>
+            <th>Aggression</th>
+            <th>Confidence</th>
+            <th>Predicted Style</th>
+          </tr>
+          <tr>
+            <td>Aggressive</td>
+            <td id="tom-agg-budget">—</td>
+            <td id="tom-agg-aggr">—</td>
+            <td id="tom-agg-conf">—</td>
+            <td id="tom-agg-style">—</td>
+          </tr>
+          <tr>
+            <td>Conservative</td>
+            <td id="tom-con-budget">—</td>
+            <td id="tom-con-aggr">—</td>
+            <td id="tom-con-conf">—</td>
+            <td id="tom-con-style">—</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="signals-box">
+        <div class="label">Smart Agent Signals</div>
+        <div class="signal-row">
+          <span>Exploit Signal</span>
+          <div class="signal-bar" id="exploit-sig-bar"></div>
+          <strong id="exploit-sig">—</strong>
+        </div>
+        <div class="signal-row">
+          <span>Uncertainty</span>
+          <div class="signal-bar" id="uncert-sig-bar"></div>
+          <strong id="uncert-sig">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Reward breakdown & metrics -->
+    <div class="metrics-panel">
+      <h3>RL Training Signals</h3>
+      
+      <div class="reward-breakdown">
+        <div class="label">Reward Components (Last Round)</div>
+        <div class="reward-row">
+          <span>Value Component</span>
+          <div class="bar-container">
+            <div class="reward-bar" id="rew-value-bar"></div>
+          </div>
+          <span id="rew-val-num">0</span>
+        </div>
+        <div class="reward-row">
+          <span>Efficiency</span>
+          <div class="bar-container">
+            <div class="reward-bar" id="rew-eff-bar"></div>
+          </div>
+          <span id="rew-eff-num">0</span>
+        </div>
+        <div class="reward-row">
+          <span>Strategy (Exploit)</span>
+          <div class="bar-container">
+            <div class="reward-bar" id="rew-strat-bar"></div>
+          </div>
+          <span id="rew-strat-num">0</span>
+        </div>
+        <div class="reward-row">
+          <span>Penalty</span>
+          <div class="bar-container">
+            <div class="reward-bar penalty" id="rew-penal-bar"></div>
+          </div>
+          <span id="rew-penal-num">0</span>
+        </div>
+        <div class="total-reward">
+          <strong>Total Reward: </strong>
+          <strong id="total-reward" class="total-val">0</strong>
+        </div>
+      </div>
+
+      <div class="metrics-box">
+        <div class="label">Episode Metrics</div>
+        <div class="metric-row">
+          <span>Total Value Won</span>
+          <strong id="total-val">0</strong>
+        </div>
+        <div class="metric-row">
+          <span>Efficiency Ratio</span>
+          <strong id="eff-ratio">0</strong>
+        </div>
+        <div class="metric-row">
+          <span>Exploit Success Rate</span>
+          <strong id="exploit-rate">0</strong>
+        </div>
+        <div class="metric-row">
+          <span>Smart Pass Rate</span>
+          <strong id="pass-rate">0</strong>
+        </div>
+        <div class="metric-row">
+          <span>Belief Alignment</span>
+          <strong id="belief-align">0</strong>
+        </div>
+      </div>
+
+      <div class="strategy-transitions">
+        <div class="label">Strategy Adaptations (Bandit Learning)</div>
+        <div id="transitions-list" class="transitions-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-container">
+      <h3>Cumulative Reward (Training Signal)</h3>
+      <canvas id="rewardChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <h3>Bid Comparison Over Time</h3>
+      <canvas id="bidChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>
