@@ -3,6 +3,8 @@
 const SCENARIO_UI = {
   auction: {
     subtitle: 'Generalized multi-agent RL for auction, opponent modeling, and theory-of-mind training.',
+    pill: 'Auction Simulation',
+    note: 'Competitive bidding, hidden budgets, exploit timing',
     participantsHeading: 'Auction Participants',
     roundInfoHeading: 'Auction Round Info',
     winnerLabel: 'This Round Winner',
@@ -20,9 +22,11 @@ const SCENARIO_UI = {
   },
   negotiation: {
     subtitle: 'Generalized multi-agent RL for negotiation dynamics, leverage tracking, and theory-of-mind training.',
+    pill: 'Negotiation Simulation',
+    note: 'Counterpart leverage, stance shifts, adaptive offers',
     participantsHeading: 'Negotiation Agents',
     roundInfoHeading: 'Negotiation Round Info',
-    winnerLabel: 'This Round Advantage',
+    winnerLabel: 'This Round Winner',
     tomHeading: 'Theory-of-Mind: What Smart Agent Infers',
     tomNote: 'Smart agent infers counterpart leverage, confidence, and likely stance from observed behavior.',
     signalsHeading: 'Negotiation Decision Signals',
@@ -37,6 +41,8 @@ const SCENARIO_UI = {
   },
   resource_allocation: {
     subtitle: 'Generalized multi-agent RL for resource allocation under scarcity, contention, and theory-of-mind training.',
+    pill: 'Resource Allocation Simulation',
+    note: 'Scarcity pressure, contention control, adaptive allocation',
     participantsHeading: 'Resource Allocation Agents',
     roundInfoHeading: 'Allocation Round Info',
     winnerLabel: 'This Round Allocation Winner',
@@ -69,6 +75,8 @@ window.addEventListener('DOMContentLoaded', () => {
   console.log('[Dashboard] Initialized');
   document.getElementById('status').textContent = 'Ready';
   syncScenarioUI();
+  updateProgress(0, getConfiguredRounds());
+  updateWinnerEffects('none');
 });
 
 async function startEpisode() {
@@ -164,6 +172,8 @@ function updateUI(round) {
   updateAgent('agg', safeRound.agg_bid, safeRound.agg_budget_remaining, safeRound.agg_wins);
   updateAgent('con', safeRound.con_bid, safeRound.con_budget_remaining, safeRound.con_wins);
   updateAgent('sm', safeRound.sm_bid, safeRound.sm_budget_remaining, safeRound.sm_wins);
+  updateWinnerEffects(safeRound.winner);
+  updateProgress(safeRound.step, safeRound.max_steps);
 
   const trophy = { aggressive: '🔴', conservative: '🔵', me: '⭐', none: '—' }[safeRound.winner] || '—';
   document.getElementById('trophy').textContent = trophy;
@@ -199,8 +209,8 @@ function updateUI(round) {
   const uncertaintySig = safeRound.uncertainty_signal || 0;
   document.getElementById('exploit-sig').textContent = exploitSig.toFixed(3);
   document.getElementById('uncert-sig').textContent = uncertaintySig.toFixed(3);
-  document.getElementById('exploit-sig-bar').style.setProperty('--signal-width', (exploitSig * 100) + '%');
-  document.getElementById('uncert-sig-bar').style.setProperty('--signal-width', (uncertaintySig * 100) + '%');
+  document.getElementById('exploit-sig-bar').style.setProperty('--signal-width', `${exploitSig * 100}%`);
+  document.getElementById('uncert-sig-bar').style.setProperty('--signal-width', `${uncertaintySig * 100}%`);
 
   const rb = safeRound.reward_breakdown || {};
   updateRewardBar('rew-value', rb.value || 0);
@@ -229,26 +239,37 @@ function updateUI(round) {
     item.className = 'transition-item';
     item.textContent = `Step ${trans.step}: ${trans.from} → ${trans.to} (${trans.trigger})`;
     list.insertBefore(item, list.firstChild);
-    if (list.children.length > 8) list.removeChild(list.lastChild);
+    if (list.children.length > 8) {
+      list.removeChild(list.lastChild);
+    }
   }
 }
 
 function updateRewardBar(id, value) {
   const bar = document.getElementById(id + '-bar');
-  if (bar) {
-    const normalized = Math.max(0, Math.min(1, (value + 5) / 10));
-    bar.style.width = (normalized * 100) + '%';
-  }
+  if (!bar) return;
+  const normalized = Math.max(0, Math.min(1, (value + 5) / 10));
+  bar.style.width = `${normalized * 100}%`;
 }
 
 function updateAgent(id, bid, budget, wins) {
   const spent = 500 - budget;
   const ratio = spent / 500;
   document.getElementById(`bid-${id}`).textContent = bid?.toFixed(2) || '—';
-  document.getElementById(`fill-${id}`).style.width = (ratio * 100) + '%';
+  document.getElementById(`fill-${id}`).style.width = `${ratio * 100}%`;
   document.getElementById(`budget-label-${id}`).textContent = `Budget: ${(ratio * 100).toFixed(0)}%`;
   document.getElementById(`budget-${id}`).textContent = budget?.toFixed(0) || '0';
   document.getElementById(`wins-${id}`).textContent = wins || 0;
+}
+
+function updateWinnerEffects(winner) {
+  const winnerMap = { aggressive: 'agg', conservative: 'con', me: 'sm' };
+  ['agg', 'con', 'sm'].forEach((id) => {
+    document.getElementById(`box-${id}`).classList.remove('winner-active');
+  });
+  if (winnerMap[winner]) {
+    document.getElementById(`box-${winnerMap[winner]}`).classList.add('winner-active');
+  }
 }
 
 function onTaskChange() {
@@ -275,7 +296,10 @@ function formatScenario(value) {
 
 function syncScenarioUI() {
   const ui = SCENARIO_UI[currentScenario] || SCENARIO_UI.auction;
+  document.body.setAttribute('data-scenario', currentScenario);
   document.getElementById('scenarioSubtitle').textContent = ui.subtitle;
+  document.getElementById('scenarioPill').textContent = ui.pill;
+  document.getElementById('scenarioNote').textContent = ui.note;
   document.getElementById('participantsHeading').textContent = ui.participantsHeading;
   document.getElementById('roundInfoHeading').textContent = ui.roundInfoHeading;
   document.getElementById('winnerLabel').textContent = ui.winnerLabel;
@@ -290,6 +314,12 @@ function syncScenarioUI() {
   document.getElementById('adaptationHeading').textContent = ui.adaptationHeading;
   document.getElementById('rewardChartHeading').textContent = ui.rewardChartHeading;
   document.getElementById('bidChartHeading').textContent = ui.bidChartHeading;
+}
+
+function updateProgress(step, maxSteps) {
+  const total = Math.max(maxSteps || 1, 1);
+  const pct = Math.max(0, Math.min(100, (step / total) * 100));
+  document.getElementById('runProgressFill').style.width = `${pct}%`;
 }
 
 function queueNextStep() {
@@ -333,6 +363,8 @@ function resetUI() {
   document.getElementById('status').textContent = 'Reset';
   document.getElementById('transitions-list').innerHTML = '';
   document.getElementById('round-num').textContent = `0 / ${getConfiguredRounds()}`;
+  updateProgress(0, getConfiguredRounds());
+  updateWinnerEffects('none');
 }
 
 function initCharts() {
@@ -354,22 +386,22 @@ function initCharts() {
           pointRadius: 3,
           pointBackgroundColor: '#4ade80',
         },
-      ]
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        filler: { propagate: true }
+        filler: { propagate: true },
       },
       scales: {
         y: { beginAtZero: true, max: 10 },
-        x: { display: true }
-      }
-    }
+        x: { display: true },
+      },
+    },
   });
-  
+
   const bcCtx = document.getElementById('bidChart');
   if (bidChart) bidChart.destroy();
   bidChart = new Chart(bcCtx, {
@@ -380,16 +412,19 @@ function initCharts() {
         { label: 'Aggressive', data: [], borderColor: '#ef4444', borderWidth: 2, tension: 0.3 },
         { label: 'Conservative', data: [], borderColor: '#3b82f6', borderWidth: 2, tension: 0.3 },
         { label: 'Smart', data: [], borderColor: '#fbbf24', borderWidth: 3, tension: 0.3 },
-      ]
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: true, position: 'top' }
+        legend: { display: true, position: 'top' },
       },
-      scales: { y: { beginAtZero: true }, x: { display: true } }
-    }
+      scales: {
+        y: { beginAtZero: true },
+        x: { display: true },
+      },
+    },
   });
 }
 
@@ -399,7 +434,7 @@ function updateCharts() {
     rewardChart.data.datasets[0].data = history.map((h) => h.reward || 0);
     rewardChart.update('none');
   }
-  
+
   if (bidChart) {
     bidChart.data.labels = history.map((_, i) => i + 1);
     bidChart.data.datasets[0].data = history.map((h) => h.agg_bid || 0);

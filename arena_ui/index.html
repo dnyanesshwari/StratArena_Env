@@ -13,6 +13,10 @@
   <header class="top-bar">
     <h1>StratArena</h1>
     <div class="subtitle" id="scenarioSubtitle">Generalized multi-agent RL with theory-of-mind across auctions, negotiation, and resource allocation</div>
+    <div class="scenario-hud">
+      <div class="scenario-pill" id="scenarioPill">Auction Simulation</div>
+      <div class="scenario-note" id="scenarioNote">Adaptive multi-agent training arena</div>
+    </div>
     <div class="controls">
       <div>
         <label>Situation:</label>
@@ -38,6 +42,9 @@
       <button id="stepBtn" onclick="togglePlayback()" disabled class="btn-primary">Pause</button>
       <button onclick="resetUI()" class="btn-secondary">Reset</button>
       <span id="status" class="status"></span>
+    </div>
+    <div class="run-progress">
+      <div class="run-progress-fill" id="runProgressFill"></div>
     </div>
   </header>
 

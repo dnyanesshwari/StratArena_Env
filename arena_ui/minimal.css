@@ -10,6 +10,33 @@ body {
   color: #e8edf5;
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(96, 165, 250, 0.12), transparent 26%),
+    radial-gradient(circle at 85% 20%, rgba(74, 222, 128, 0.08), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(251, 191, 36, 0.08), transparent 30%);
+  animation: driftGlow 14s ease-in-out infinite alternate;
+}
+
+body[data-scenario="negotiation"]::before {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(244, 114, 182, 0.14), transparent 24%),
+    radial-gradient(circle at 80% 22%, rgba(96, 165, 250, 0.10), transparent 22%),
+    radial-gradient(circle at 50% 100%, rgba(45, 212, 191, 0.08), transparent 28%);
+}
+
+body[data-scenario="resource_allocation"]::before {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(45, 212, 191, 0.14), transparent 26%),
+    radial-gradient(circle at 85% 18%, rgba(132, 204, 22, 0.10), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(251, 191, 36, 0.08), transparent 30%);
 }
 
 .app {
@@ -29,6 +56,8 @@ body {
   border-radius: 8px;
   margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
 .top-bar h1 {
@@ -42,6 +71,32 @@ body {
   font-size: 12px;
   color: #a0aec0;
   letter-spacing: 0.5px;
+}
+
+.scenario-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.scenario-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background: rgba(96, 165, 250, 0.12);
+  color: #dbeafe;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.18);
+}
+
+.scenario-note {
+  font-size: 11px;
+  color: #93c5fd;
+  letter-spacing: 0.3px;
 }
 
 .controls {
@@ -107,6 +162,24 @@ input[type="number"] {
   margin-left: auto;
 }
 
+.run-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.run-progress-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #60a5fa, #4ade80 55%, #fbbf24);
+  transition: width 0.35s ease;
+  box-shadow: 0 0 14px rgba(96, 165, 250, 0.45);
+}
+
 /* ─────────────────────────────────────────── MAIN GRID ─────────────────────────────────────────── */
 
 .main-grid {
@@ -145,17 +218,25 @@ h3 {
   border-radius: 8px;
   padding: 14px;
   flex: 1;
-  transition: all 0.3s;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
 .agent-box:hover {
   border-color: #4b5563;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  transform: translateY(-2px);
 }
 
 .agent-box-smart {
   border-color: #60a5fa;
   background: linear-gradient(135deg, #162d6d30 0%, #2d3748 100%);
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.12);
+}
+
+.winner-active {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25), 0 0 24px rgba(251, 191, 36, 0.22) !important;
+  transform: translateY(-2px);
 }
 
 .agent-title {
@@ -195,6 +276,16 @@ h3 {
   height: 100%;
   background: linear-gradient(90deg, #4ade80, #10b981);
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+  transform: translateX(-100%);
+  animation: sweep 2.6s linear infinite;
 }
 
 .budget-label {
@@ -289,12 +380,14 @@ h3 {
   padding: 16px;
   border-radius: 8px;
   border: 2px solid #fbbf24;
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.08);
 }
 
 .trophy {
   font-size: 48px;
   line-height: 1;
   margin-bottom: 8px;
+  animation: trophyPulse 2.2s ease-in-out infinite;
 }
 
 #winner-name {
@@ -476,6 +569,7 @@ h3 {
   color: #a0aec0;
   border-radius: 2px;
   font-family: 'Courier New', monospace;
+  animation: slideIn 0.3s ease;
 }
 
 /* ─────────────────────────────────────────── CHARTS ─────────────────────────────────────────── */
@@ -514,6 +608,26 @@ canvas {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@keyframes driftGlow {
+  0% { transform: translateY(0) scale(1); opacity: 0.9; }
+  100% { transform: translateY(-8px) scale(1.03); opacity: 1; }
+}
+
+@keyframes sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(140%); }
+}
+
+@keyframes trophyPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4)); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .status {
