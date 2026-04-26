@@ -340,6 +340,6 @@ if __name__ == "__main__":
     import uvicorn
     import os
 
-    port = int(os.getenv("DASHBOARD_PORT", "8001"))
+    port = int(os.getenv("DASHBOARD_PORT", "8000"))
     print(f"[Dashboard] Starting on http://localhost:{port}")
     uvicorn.run(dashboard_app, host="0.0.0.0", port=port, reload=False)

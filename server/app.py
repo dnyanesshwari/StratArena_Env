@@ -28,8 +28,6 @@ app = create_app(
 include_dashboard_routes(app)
 
 UI_PATH = Path(__file__).resolve().parent.parent / "arena_ui"
-if UI_PATH.exists():
-    app.mount("/static", StaticFiles(directory=UI_PATH), name="static")
 
 
 @app.get("/")
@@ -37,12 +35,12 @@ def root() -> FileResponse:
     index_file = UI_PATH / "index.html"
     if index_file.exists():
         return FileResponse(index_file)
-    return RedirectResponse(url="/", status_code=307)
+    return RedirectResponse(url="/docs", status_code=307)
 
 
 def main() -> None:
     port = int(os.getenv("PORT", "8000"))
-    uvicorn.run("server.app:app", port=port, reload=False)
+    uvicorn.run("server.app:app", host="0.0.0.0", port=port, reload=False)
 
 
 if __name__ == "__main__":

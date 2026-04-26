@@ -11,7 +11,7 @@ def main() -> None:
     import uvicorn
 
     port = int(os.getenv("PORT", os.getenv("DASHBOARD_PORT", "8001")))
-    print(f"[StratArena] Arena UI ready at http://127.0.0.1:{port}")
+    print(f"[StratArena] Arena UI ready at {port}")
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
 
 
