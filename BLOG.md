@@ -1,360 +1,168 @@
-# StratArena: Teaching LLMs to Think Like Strategists
-## We Built an RL Environment Where AI Learns to Outsmart Opponents
+# How We Tried to Teach an LLM to Understand an Opponent
 
-**By Dnyaneesh Whari & Team** | April 26, 2026 | *OpenEnv Hackathon Grand Finale*
+When I first learned reinforcement learning, I understood it in the simplest way: an agent learns through rewards and penalties. That is the definition most of us start with. It is correct, but while building this project, I realized that reinforcement learning becomes much more meaningful when it is used not just to optimize actions, but to shape behavior in uncertain, human-like situations.
 
----
+That realization did not come from theory alone. It came from this hackathon.
 
-## The Problem We Noticed
+My team and I were not trying to build just another benchmark or another model demo. We were trying to explore a real weakness we kept noticing in modern LLMs. Today, LLMs can write code, summarize documents, answer questions, and reason surprisingly well. In many cases, they can imitate parts of human thinking. But there is still a very important gap.
 
-You ask a modern LLM: "What should I bid in this auction?" It thinks. It reasons. It gives you an answer.
+LLMs are still weak at understanding an opponent.
 
-But then you change the game. The opponent shifts strategy. The market moves. And suddenly that answer falls apart.
+That sounds simple, but it matters a lot.
 
-Why? Because **LLMs are brilliant at solving problems in isolation, but terrible at understanding other minds.**
+In real life, many important decisions are not made in isolation. They happen in negotiation, auctions, resource allocation, strategic planning, and any setting where another agent is also trying to win. In those situations, success does not come only from solving a visible problem. It comes from reading the other side.
 
-They don't read the room. They don't adapt when the rules shift. They don't infer what an opponent might do next. That's not a small weakness — it's a massive gap when you need AI for:
+Humans do this naturally. During a negotiation, a person can often sense when the other side is under pressure, hiding weakness, becoming aggressive, or changing strategy. We may not know their exact internal state, but we infer it from behavior. We observe timing, confidence, hesitation, pressure, and patterns. Then we adjust.
 
-- Real-time bidding in ad auctions
-- Negotiating energy prices
-- Resource allocation in competitive markets
-- Any scenario where another agent is also trying to win
+That is a very powerful kind of intelligence.
 
-So we asked ourselves: **Can we build an environment where an LLM doesn't just act — but learns to think strategically?**
+And we felt that most LLM systems still do not do this well.
 
-That question led us to StratArena.
+That is where our project began.
 
----
+## The question that pushed us
 
-## What We Built
+We asked ourselves a simple but deep question:
 
-StratArena is a **multi-agent reinforcement learning environment** that forces LLMs to think like market strategists.
+**Can we create an environment where an LLM learns not just to act, but to understand the behavior of other agents under uncertainty?**
 
-### The Game
+That question led us to build **StratArena**.
 
-Three agents compete in a **sealed-bid auction** across 12–20 rounds:
+StratArena is our multi-agent reinforcement learning environment designed for strategic settings where opponent modeling matters. Instead of giving the learner a clean, fully visible world, we designed a setting where important information is hidden. The model cannot directly see the true budget or full strategy of its opponents. It only sees signals from their actions.
 
-- Each round has a hidden resource value (with noise and scarcity)
-- You bid blind — you don't see opponent bids until after yours is locked
-- Winner pays their bid and keeps the resource
-- Your budget is finite — burn it early and you lose mid-game battles
+That design choice was intentional.
 
-```
-Your mental model while playing:
-├─ "Is this resource valuable or a trap?"
-├─ "Are opponents desperate or calm right now?"
-├─ "Do I save for the finale or go all-in now?"
-└─ "What will they think I'll do?"
-```
+We wanted the model to face the same kind of uncertainty humans face in real strategic interaction. You do not get perfect information. You only get behavior. From that behavior, you try to build belief.
 
-It's not chess. There's no optimal solution. **Every choice depends on predicting your opponent's beliefs.**
+## From idea to environment
 
----
+Once we became clear on the problem, the next challenge was to translate it into a trainable environment.
 
-## The Secret Sauce: Theory of Mind
+We built StratArena around competitive decision-making. The learner competes against two different kinds of opponents: one aggressive and one conservative. Each of them behaves differently, spends differently, and shifts pressure differently across an episode. The learner has to decide how much to allocate in each round while the environment keeps changing.
 
-Here's what makes StratArena different from typical RL environments:
+To make the environment meaningful, we made it partially observable. The learner does not get direct access to hidden internal state. Instead, it observes practical signals such as recent wins, bid intensity, market pressure, resource scarcity, and behavioral trends over time.
 
-The agent doesn't see opponent budgets, true strategies, or hidden states. It only sees **behavioral signals**:
+This was important for us because we did not want to build a toy task where the right answer is obvious from the state itself. We wanted to create a setting where the model has to infer what is happening behind the scenes.
 
-- `opponent_bid_estimate` — What did they probably spend this round?
-- `exploit_signal` — Are they overextended right now?
-- `market_pressure` — Is the overall mood aggressive or defensive?
-- `uncertainty_signal` — How confident should I be in these readings?
+That is where our most important innovation came in.
 
-This mirrors **real strategic thinking**. When you're in a negotiation, you never have perfect info. You read tone, hesitation, timing. You form beliefs. You act on those beliefs.
+## The heart of the project: Theory of Mind
 
-We call it **Theory of Mind-inspired opponent modeling**, and it's the core innovation.
+The novelty of our work is the use of a **Theory of Mind-inspired mechanism** inside the environment.
 
----
+In simple terms, Theory of Mind is the ability to form an internal estimate of what another agent may be thinking, intending, or hiding. Humans use this constantly. In strategic interaction, it is often the difference between average decision-making and strong decision-making.
 
-## The Team's Journey (Behind the Scenes)
+We wanted to bring that idea into LLM training.
 
-### Day 1: The Realization
+So in our environment, we built a belief-tracking component that continuously estimates opponent state from observable behavior. Instead of revealing truth directly, the environment produces evolving belief signals such as estimated budget, aggression level, confidence, volatility, exploitability, and uncertainty.
 
-We started this hackathon with a wild question: *Can an LLM learn that patience is a weapon?*
+This changed the whole nature of the problem.
 
-First, we sketched the auction. Simple: bid, win, repeat. But then we realized that's boring—LLMs would just learn "bid proportional to value" and stop.
+Now the learner was not only deciding, “Should I bid high or low?”  
+It was learning to ask, in effect, “What do I think my opponent’s condition is right now? How certain am I? Is this the right moment to exploit, defend, or wait?”
 
-**Decision point**: Add hidden information. Don't give them the answer. Force them to infer.
+That made the project feel much closer to real strategic intelligence.
 
-### Day 1 Afternoon: The Reward Problem
+## Why we chose these kinds of tasks
 
-We tried simple rewards: `+1 if you win, -1 if you lose.`
+We did not want the environment to be narrow or useful for only one artificial setting. We wanted it to generalize to classes of real-world interactions where reading the other side matters.
 
-The model learned nothing useful. It would bid randomly or anchor to the first value it saw.
+That is why we shaped the environment around tasks like:
 
-So we asked: **What does strategic thinking actually look like?**
+- negotiation-like strategic interaction
+- resource allocation under competition
+- auction-style decision-making
 
-- Win efficiently (capture value without overbidding)
-- Preserve budget (discipline beats greed)
-- Exploit weakness (spot when opponents are broken)
-- Adapt when markets shift (react to new information)
+These are all scenarios where single-agent logic is not enough. A model can be intelligent in isolation and still fail badly if it cannot model the behavior of others.
 
-We built a **five-part reward rubric**:
+That was the core problem we were trying to solve.
 
-```
-Total Reward = 
-  40% win_efficiency +
-  25% budget_conservation +
-  20% strategic_timing +
-  10% opponent_exploitation +
-  5% adaptive_strategy
-```
+## The three stages of challenge
 
-This made the problem *impossible* to game. An agent that maximizes one component destroys another. **Real strategic balance emerges.**
+To make the learning process structured, we designed three tasks.
 
-### Late Day 1: The Gamified UI Dreams
+The first task focuses on **balanced strategy learning**. Here the learner must capture value without destroying its own budget too early. This is the foundation: discipline before aggression.
 
-While waiting for training to run, we sketched out what the dashboard would show:
+The second task focuses on **opponent exploitation**. In this setting, the learner must notice when an opponent is weak, depleted, or predictable, and then act more aggressively in those specific moments.
 
-- **Live market pressure** (gauge that fills as opponents get aggressive)
-- **Belief cards** for each opponent (shows the LLM's inference of their state)
-- **Reward breakdown** (which part of the strategy earned points?)
-- **Strategy history** (early-game conservative → mid-game sniper → late-game all-in)
-- **Heat map** of rounds won vs. rounds wasted
+The third task focuses on **dynamic adaptation**. This is the hardest setting. In the middle of the episode, the opponent behavior changes. That means the learner cannot survive with one fixed pattern. It has to update its beliefs and adapt after the regime shift.
 
-We wanted users not just to see the final score, but to *feel* the LLM's thinking unfold.
+This progression mattered to us. It mirrors how strategic understanding develops: first control yourself, then read weakness, then adapt when the world changes.
 
-### Day 2 Early Morning: First Training Run
+## Reward was not enough by itself, so we shaped it carefully
 
-We loaded Qwen2.5-7B-Instruct into Unsloth + TRL GRPO. Set it to run 200 steps. Went for coffee.
+One thing we learned quickly is that if you want the agent to learn rich strategic behavior, you cannot rely on a shallow reward alone.
 
-Came back. The curves were climbing.
+So we designed reward functions that captured more than just winning.
 
-By step 150, the agent had learned:
-- **Don't bid high in round 1** (preserve ammunition)
-- **Bid high when scarcity spikes** (fewer competitors for that resource)
-- **Destroy the opponent when exploit_signal > 0.8** (they're overextended, it's your moment)
+Our reward considered things like:
 
-None of this was programmed. **It emerged from the reward signal.**
+- value captured
+- spending efficiency
+- whether the action exploited a real opportunity
+- whether the agent avoided waste under pressure
+- penalties for overbidding or poor budget management
 
-### Training Results That Mattered
+This was one of the most educational parts of the project for me. It showed that building an RL environment is not only about coding transitions and actions. It is also about deciding what kind of intelligence you want the system to value.
 
-| Metric | Random Agent | Trained Agent | Gain |
-|--------|--------------|---------------|------|
-| Composite Reward | 0.12 | 0.61 | **+408%** |
-| Win Rate | 34% | 47% | +13% |
-| Budget Survival | 41% | 78% | +37% |
-| Scarcity Win Rate | 29% | 54% | +25% |
-| Exploit Frequency | 22% | 61% | +39% |
+In our case, we wanted the environment to reward strategic judgment, not blind aggression.
 
-The agent didn't just win more. It *survived* better. It *read the room* better.
+## One of the most exciting parts: no fixed dataset
 
----
+Another thing that made this project feel genuinely innovative was that we were not training from a traditional fixed dataset alone.
 
-## The Three Challenge Levels (Why We Designed It This Way)
+The environment itself generates rollouts in real time. Those interactions become the training material.
 
-**Level 1: Discipline** 
-"Can you win without bankrupting yourself?"
-- Teaches budget management
-- Reward for restraint in early rounds
+That means the data is not just static examples collected once and frozen. It is created from live strategic behavior inside the environment. The model learns from situations that emerge through interaction.
 
-**Level 2: Predation**
-"Can you spot weakness and attack?"
-- Teaches opponent reading
-- Bonus for wins when opponents show `exploit_signal > 0.8`
+For me, this was one of the most beautiful parts of the whole system. It felt like we were not only feeding data to the model. We were building a world in which the model could learn.
 
-**Level 3: Chaos**
-"Can you adapt mid-game?"
-- Opponent behavior changes at round N/2
-- Teaches belief updating
+## How we trained the LLM
 
-We designed this progression **intentionally**. It mirrors how strategic intelligence actually develops: first you master yourself, then you read others, then you adapt when the world shifts.
+To make this practical, we used a two-stage pipeline.
 
----
+First, we used **SFT** to help the model learn the structure of the task and action behavior from rollout data. This gave the model a supervised starting point.
 
-## The Architecture (What We Actually Built)
+After that, we used **GRPO** so the model could improve through reward-driven optimization. This stage mattered because imitation alone is not enough for strategic reasoning. A model may learn the format of good behavior from examples, but it becomes more interesting when it starts receiving feedback from consequences.
 
-```
-StratArena/
-├── models.py                     # BidAction, Observation schemas
-├── environment.py                # Core auction + opponent spawning
-├── rubrics/composite_reward.py   # 5-part reward calculation
-├── opponents/
-│   ├── aggressive.py             # Bids 1.4–1.8x value
-│   └── conservative.py           # Bids 0.6–0.9x value
-├── dashboard/
-│   ├── live_belief_cards.py      # Render opponent inferences
-│   ├── reward_breakdown.py       # Show reward attribution
-│   └── strategy_timeline.py      # Visualize mode switching
-└── training/train_grpo.ipynb     # Full Colab notebook
-```
+We used **`meta-llama/Llama-3.2-1B-Instruct`** in this training flow. That gave us a practical model size for experimentation while still letting us test the full idea.
 
-Everything runs on **OpenEnv v0.2.3** (client/server over HTTP).
+## What we built beyond the core environment
 
-Any LLM can join. Any reward function can be plugged in. That was intentional — we wanted this to be a **community environment**, not a one-off hack.
+As the project grew, it became more than just an environment file or a notebook experiment.
 
----
+We built the surrounding system too:
 
-## The Gamified Dashboard (Because LLMs Need Visual Feedback Too)
+- an OpenEnv-compatible environment
+- training scripts for SFT and GRPO
+- rollout export pipeline
+- evaluation across tasks
+- inference flow for trained models
+- a dashboard and API to inspect episodes, beliefs, bids, rewards, and adaptation behavior
 
-We designed a UI that shows what the LLM is actually learning:
+That part mattered a lot to us because we wanted this project to be inspectable. We wanted to see the model not just as a final score, but as a learner moving through uncertainty.
 
-**The Belief Panel**
-- Shows estimated opponent budgets in real time
-- Color: 🟢 green (likely has cash) → 🔴 red (probably broke)
-- Updates every round based on behavior
+## What this project taught me
 
-**The Exploit Meter**
-- Fills when opponents overextend
-- LLM gets bonus reward for bids placed when meter is high
-- Trains: "Wait for your moment"
+This project changed how I think about reinforcement learning for LLMs.
 
-**The Strategy Timeline**
-- Shows which mode the LLM chose each round
-- Early: Conservative (underbid, preserve)
-- Mid: Sniper (patient, surgical strikes)
-- Late: Aggressive (use remaining budget)
-- **This isn't programmed — it emerges**
+Before this, RL felt to me like a framework mostly described through definitions: reward, penalty, policy, optimization. After building StratArena, it started to feel much more alive. It became a way to teach a model something subtle: how to behave when the answer is not fully visible and when another mind is part of the problem.
 
-**The Reward Scorecard**
-- Breaking down: efficiency + conservation + timing + exploitation + adaptation
-- Shows which strategies actually paid off
-- Real accountability
+That is what made this hackathon special for me.
 
----
+We were not only building a system. We were trying to teach a machine one small part of strategic human intelligence: the ability to form a belief about another agent and act under uncertainty.
 
-## Why This Matters (Beyond the Hackathon)
+That is still a hard problem. We are not claiming it is solved. But I believe this project is a genuine step in that direction.
 
-### The Real-World Use Cases
+## Closing reflection
 
-1. **Programmatic advertising** ($600B+ market)
-   - AI bid agents need to read competitor behavior
-   - StratArena trains exactly that skill
+Our honest goal in this hackathon was to build an RL environment that helps an LLM learn opponent behavior in settings where one-way reasoning is not enough.
 
-2. **Energy markets**
-   - Grid operators need to bid intelligently in auctions
-   - Shortage signals (= high `market_pressure`) demand adaptation
+In tasks like negotiation, auctions, and resource allocation, success depends on more than logic. It depends on timing, adaptation, uncertainty handling, and mental modeling of the other side.
 
-3. **Cloud spot instances**
-   - Your bidding strategy should change when you see competitor bids rising
-   - Learn to predict market shifts before they happen
+That is what we tried to capture with StratArena.
 
-4. **Automated procurement**
-   - Negotiate with suppliers who are also learning
-   - Infer: Are they desperate, testing, or anchoring?
+As AI keeps advancing, I believe reinforcement learning can help LLMs grow beyond static response generation and become more adaptive, more strategic, and more useful in interactive real-world settings.
 
-An LLM trained on StratArena has learned **transferable economic intuition**, not just memorized one game.
-
----
-
-## What We Learned (The Meta-Lessons)
-
-### 1. Reward Design is Everything
-A shallow reward signal (win/lose) is useless. **Reward what you actually want the system to learn.** We got better behavior when we explicitly rewarded:
-- Efficiency (don't overpay)
-- Conservation (think long-term)
-- Timing (read the market)
-- Exploitation (strike when ready)
-
-It's like coaching: tell the player exactly what good looks like.
-
-### 2. Opponent Diversity Matters
-Training against one fixed opponent = memorization.
-Training against two opposing styles (aggressive + conservative) = strategy.
-We saw the agent learn **mode-switching** because it had to adapt to different threats.
-
-### 3. Partial Observability is the Point
-If you give LLMs full information, they solve it and stop learning.
-**Hide information → Force inference → That's where thinking happens.**
-
-The `uncertainty_signal` (how confident should you be in your beliefs?) is as important as the beliefs themselves.
-
-### 4. Theory of Mind is Learnable
-Our biggest surprise: the agent genuinely learned to model opponents.
-When we inspected the belief signals, they were *correct*.
-Not always, but often enough that the strategy made sense.
-
----
-
-## Code You Can Run Today
-
-### Quick Start
-```bash
-pip install stratarena-env
-
-from stratarena_env import StratArenaClient, BidAction
-
-with StratArenaClient(base_url="http://localhost:8000").sync() as env:
-    obs = env.reset()
-    # obs contains: resource_value, opponent_signals, exploit_signal, etc.
-    
-    result = env.step(BidAction(bid_fraction=0.75))
-    print(f"Won: {result.won}, Reward: {result.reward}")
-```
-
-### Train Your Own Model
-Fully runnable Colab notebook: `training/train_grpo.ipynb`
-- Uses Unsloth (4-bit quantization, fast)
-- TRL GRPO (native LLM RL training)
-- Free T4 GPU on Colab
-- ~3 hours for 200 steps
-
-```python
-trainer = GRPOTrainer(
-    model=model,
-    reward_funcs=stratarena_reward_function,
-    args=GRPOConfig(num_generations=4),
-    train_dataset=auction_prompts,
-)
-trainer.train()
-```
-
----
-
-## The Team's Honest Take
-
-We built this at a hackathon. The code is messy. The dashboard isn't polished.
-
-But it *works*. The LLM learns. The behaviors are real. The training is replicable.
-
-**We prioritized genuine novelty over polish.**
-
-And that's exactly what the OpenEnv judging guide told us to do:
-
-> *"A messy but ambitious environment with real training evidence beats a polished but boring one."*
-
-This is our ambitious environment. And we're proud of it.
-
----
-
-## What's Next
-
-- **Generalization**: Train on StratArena, test on unseen auction formats
-- **Multi-agent co-learning**: What if both players are LLMs adapting to each other?
-- **Transfer learning**: Can skills from StratArena help in negotiation tasks?
-- **Scaling**: What does this look like with larger models and longer episodes?
-
-We're releasing everything open-source. **Come play. Come train. Come build on it.**
-
----
-
-## Try It Now
-
-🤗 **[Play StratArena on Hugging Face Spaces](https://huggingface.co/spaces/REPLACE_WITH_YOUR_SPACE)**
-
-📓 **[Training Notebook](https://colab.research.google.com/REPLACE_WITH_YOUR_NOTEBOOK)**
-
-💻 **[GitHub Repository](https://github.com/dnyanesshwari/StratArena_Env)**
-
-📊 **[Full Results & Visualizations](outputs/)**
-
----
-
-## Final Thought
-
-The future of LLM reasoning isn't just about answering questions faster.
-
-It's about **thinking like there are other minds in the room**.
-
-StratArena is one small step toward that future.
-
-We'd love to see what you build with it next.
-
----
-
-*Built with ❤️ at the OpenEnv Hackathon Grand Finale, Bangalore — April 25–26, 2026*
-
-*Team: [Your names], powered by Meta-Llama 3.2, Unsloth, and way too much coffee* ☕
-
+This project was our attempt to explore that future, not just by talking about it, but by building toward it. +
+ 
