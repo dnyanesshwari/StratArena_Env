@@ -1,103 +1,76 @@
-# StratArena
+# 🎯 StratArena_Env: Multi-Agent Bidding Strategy Learning
 
-StratArena is an OpenEnv-compatible multi-agent reinforcement learning environment for theory-of-mind training under uncertainty. A learner competes against aggressive and conservative opponents for limited resources, sees only behavioral signals, and must infer hidden opponent state
-such as budget depletion and strategic posture.
+[![Hugging Face Space – Try Online](https://img.shields.io/badge/🤗-Run%20on%20Hugging%20Face%20Space-yellow)](https://huggingface.co/spaces/REPLACE_WITH_YOUR_SPACE)
+[![OpenEnv](https://img.shields.io/badge/Built%20with-OpenEnv-orange)](https://github.com/openenv/openenv)
+[![License](https://img.shields.io/badge/License-MIT-blue)](./LICENSE)
 
-## Core idea
+## 🚀 What is StratArena_Env?
 
-- multi-agent strategic allocation rather than a single-agent toy benchmark
-- partial observability through opponent signals instead of direct hidden-state access
-- theory-of-mind features generated from an online belief tracker
-- task-specific grading for balanced play, opponent exploitation, and dynamic adaptation
+**StratArena_Env** is an innovative, OpenEnv-compatible reinforcement learning environment that teaches language models and RL agents to master **dynamic multi-agent auction bidding**—a problem sitting at the intersection of game theory, economic strategy, and real-time decision-making.
 
-## Tasks
+Unlike traditional RL benchmarks (chess, grid-worlds, snake), StratArena targets a **genuine capability gap**: LLMs currently struggle with adaptive strategies in partial-observability markets with:
+- **Incomplete information** about opponent intentions
+- **Shifting market dynamics** (resource values change mid-game)
+- **Compounding budget constraints** (every bid matters; you can't recover lost resources)
+- **Multi-horizon rewards** (exploit now vs. save for future opportunities)
 
-- `easy` / `basic_competition`: balance value capture with budget discipline
-- `medium` / `opponent_exploitation`: exploit depleted or predictable opponents
-- `hard` / `adaptive_strategy`: adapt after the opponent regime shifts mid-episode
+This environment teaches agents to:
+1. **Reason about imperfect information** (what are the opponents planning?)
+2. **Switch strategies dynamically** (adapt on-the-fly based on market feedback)
+3. **Manage scarce resources** (spend wisely; don't deplete your budget)
+4. **Detect & exploit opportunities** (win high-value resources when opponents are weak)
 
-## OpenEnv contract
+---
 
-- `reset(task=..., seed=...) -> StratArenaObservation`
-- `step(StratArenaAction) -> StratArenaObservation`
-- `state -> StratArenaState`
+## 🎬 Problem Statement: The Innovation Angle
 
-Validate the environment:
+### Why This Problem?
 
-```bash
-uv run openenv validate .
-```
+Current LLMs and RL agents excel at:
+- ✅ Game trees with perfect information (chess)
+- ✅ Deterministic, reward-dense environments
+- ✅ Single-agent planning
 
-## Run it
+But struggle with:
+- ❌ **Partial observability** + multi-agent interaction
+- ❌ **Dynamic, shifting reward structures** (resources get more/less valuable)
+- ❌ **Long-horizon trade-offs** where early mistakes compound
+- ❌ **Theory of mind** (inferring opponent models from limited signals)
 
-Install dependencies:
+**StratArena_Env** is designed to push LLMs to reason about all four simultaneously—a capability gap with real-world applications:
+- **Auction design & bidding strategies** (energy markets, ad auctions)
+- **Resource allocation under uncertainty** (cloud computing, bandwidth)
+- **Strategic negotiation** (business deals, diplomacy)
 
-```bash
-uv sync
-```
+---
 
-Run the local server:
+## 🎮 Environment Overview
 
-```bash
-uv run python -m uvicorn server.app:app --host 0.0.0.0 --port 8000
-```
+### Core Mechanics
 
-Run the heuristic benchmark:
+**Agent Role:** You compete against two opponents in a **multi-round auction**.
 
-```bash
-uv run python inference.py --policy heuristic --task all
-uv run python evaluate_tasks.py
-```
+| **Component**     | **Description**                                                                     |
+|-------------------|-------------------------------------------------------------------------------------|
+| **Observation**   | Current round resource value, market pressure estimates, your budget, opponent signals |
+| **Action Space**  | Continuous allocation ∈ [0.0, 2.0] (bid as fraction of resource value)            |
+| **Opponents**     | Two AI agents with different strategies (Aggressive, Conservative)                 |
+| **Task Variants** | Easy (12 steps), Medium (15 steps), Hard (20 steps) with increasing complexity     |
 
-Run a trained RL model inside the live environment through the same inference entrypoint:
+### State Information
 
-```bash
-uv run python inference.py --policy trained --model-path outputs/stratarena_grpo --task all
-```
-
-Inspect one episode and verify all 3 agents are active:
-
-```bash
-uv run python training/inspect_episode.py --task hard --steps 10
-```
-
-Export rollouts for training:
-
-```bash
-uv run python training/data_export.py --policy mixed --episodes-per-task 80 --output outputs/stratarena_rollouts.jsonl
-```
-
-In Google Colab with Unsloth, use the exported JSONL and run:
-
-```bash
-python training/unsloth_colab_train.py --dataset outputs/stratarena_rollouts.jsonl --mode sft
-python training/unsloth_colab_train.py --dataset outputs/stratarena_rollouts.jsonl --mode grpo
-```
-
-Or run the full local pipeline with the same notebook logic:
-
-```bash
-uv run python training/unsloth_colab_train.py --dataset outputs/stratarena_rollouts.jsonl --mode all
-uv run python training/unsloth_colab_train.py --dataset outputs/stratarena_rollouts.jsonl --mode eval
-```
-
-Training notes:
-
-- `training/unsloth_colab_train.py` ports the notebook into a repo script.
-- `SFT` uses rollout prompts plus expert completions from the exported dataset.
-- `GRPO` uses two rewards: JSON-format compliance and an observation-based environment-shaped reward computed from the prompt payload.
-- `inference.py --policy trained` loads the saved RL/SFT model folder and runs it back through the actual StratArena environment.
-
-## Observation summary
-
-Each step exposes:
-
-- current step and remaining budget
-- current resource value, scarcity, and market pressure
-- opponent behavior signals such as recent wins and bid intensity
-- ToM feature vector: inferred budget, aggression, confidence, volatility, exploit signal, uncertainty
-- cumulative value won, spend so far, reward breakdown, and live task score
-
-## Why it matters
-
-This environment is designed for training and benchmarking agents that must reason about other agents instead of merely reacting to visible state. It is suitable for strategic allocation research across auctions, negotiation, resource scheduling, and other competitive partially observable settings.
+The agent observes:
+```json
+{
+  "resource_value": 50.0,            // Current resource on auction
+  "resource_scarcity": 0.8,          // How rare is this resource?
+  "market_pressure": 1.2,            // How aggressive are competitors?
+  "my_budget": 250.0,                // Your remaining budget
+  "opponent_signals": {
+    "aggressive_bid_estimate": 35.0,
+    "conservative_bid_estimate": 25.0
+  },
+  "step": 5,                         // Current step / 12-20
+  "exploit_signal": 0.9,             // How exploitable is this round?
+  "uncertainty_signal": 0.4          // How confident are opponent estimates?
+}
