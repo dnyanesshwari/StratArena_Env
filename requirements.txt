@@ -10,6 +10,8 @@ pydantic>=2.6.0
 
 # LLM client (inference.py)
 openai>=1.30.0
+gradio>=4.0
+matplotlib>=3.8.0
 
 # Utilities
 python-dotenv>=1.0.0
