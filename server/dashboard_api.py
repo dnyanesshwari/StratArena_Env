@@ -10,7 +10,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +22,7 @@ from server.stratarena_environment import StratArenaEnvironment
 from models import StratArenaAction
 from inference import heuristic_allocation, AdaptiveStrategyController, StepTrace
 
-app = FastAPI(title="StratArena Dashboard")
+router = APIRouter()
 
 
 SCENARIO_OPTIONS = {"auction", "negotiation", "resource_allocation"}
@@ -34,19 +34,8 @@ class StartEpisodeRequest(BaseModel):
     rounds: int = Field(default=15, ge=15)
     seed: int | None = None
 
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Serve static UI files
+# Serve static UI files from the shared repo path
 UI_PATH = Path(__file__).parent.parent / "arena_ui"
-if UI_PATH.exists():
-    app.mount("/static", StaticFiles(directory=UI_PATH), name="static")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -246,16 +235,7 @@ class EpisodeSession:
 _sessions: dict[str, EpisodeSession] = {}
 
 
-@app.get("/")
-async def serve_ui():
-    """Serve main dashboard HTML."""
-    ui_file = UI_PATH / "index.html"
-    if ui_file.exists():
-        return FileResponse(ui_file)
-    return {"error": "UI not found"}
-
-
-@app.post("/api/episode/start")
+@router.post("/api/episode/start")
 async def start_episode(payload: StartEpisodeRequest):
     """Start a new episode."""
     episode_id = f"{payload.scenario}_{payload.task}_{int(time.time()*1000)}"
@@ -281,7 +261,7 @@ async def start_episode(payload: StartEpisodeRequest):
         return {"success": False, "error": str(e)}
 
 
-@app.post("/api/episode/{episode_id}/step")
+@router.post("/api/episode/{episode_id}/step")
 async def step_episode(episode_id: str):
     """Execute one step."""
     if episode_id not in _sessions:
@@ -302,7 +282,7 @@ async def step_episode(episode_id: str):
         return {"success": False, "error": str(e)}
 
 
-@app.post("/api/episode/{episode_id}/reset")
+@router.post("/api/episode/{episode_id}/reset")
 async def reset_episode(episode_id: str):
     """Reset episode."""
     if episode_id in _sessions:
@@ -310,7 +290,7 @@ async def reset_episode(episode_id: str):
     return {"status": "reset"}
 
 
-@app.get("/api/episode/{episode_id}/summary")
+@router.get("/api/episode/{episode_id}/summary")
 async def get_episode_summary(episode_id: str):
     """Get final episode summary."""
     if episode_id not in _sessions:
@@ -332,16 +312,34 @@ async def get_episode_summary(episode_id: str):
     }
 
 
-@app.get("/api/health")
+@router.get("/api/health")
 async def health():
     """Health check."""
     return {"status": "ok"}
 
 
+def include_dashboard_routes(target_app: FastAPI) -> None:
+    """Attach the dashboard routes and static UI mount to another FastAPI app."""
+    target_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    if UI_PATH.exists():
+        target_app.mount("/static", StaticFiles(directory=UI_PATH), name="static")
+    target_app.include_router(router)
+
+
+# For standalone execution of the dashboard service
 if __name__ == "__main__":
+    dashboard_app = FastAPI(title="StratArena Dashboard")
+    include_dashboard_routes(dashboard_app)
+
     import uvicorn
     import os
-    
+
     port = int(os.getenv("DASHBOARD_PORT", "8001"))
     print(f"[Dashboard] Starting on http://localhost:{port}")
-    uvicorn.run("server.dashboard_api:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(dashboard_app, host="0.0.0.0", port=port, reload=False)
