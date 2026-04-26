@@ -12,8 +12,16 @@
 <div class="app">
   <header class="top-bar">
     <h1>StratArena</h1>
-    <div class="subtitle">Multi-Agent RL Environment with Theory-of-Mind</div>
+    <div class="subtitle" id="scenarioSubtitle">Generalized multi-agent RL with theory-of-mind across auctions, negotiation, and resource allocation</div>
     <div class="controls">
+      <div>
+        <label>Situation:</label>
+        <select id="scenarioSel" onchange="onScenarioChange()">
+          <option value="auction" selected>Auction</option>
+          <option value="negotiation">Negotiation</option>
+          <option value="resource_allocation">Resource Allocation</option>
+        </select>
+      </div>
       <div>
         <label>Task:</label>
         <select id="taskSel" onchange="onTaskChange()">
@@ -22,8 +30,12 @@
           <option value="hard">Hard (Regime Shift)</option>
         </select>
       </div>
+      <div>
+        <label>Rounds:</label>
+        <input id="roundsInput" type="number" min="15" value="15" />
+      </div>
       <button onclick="startEpisode()" class="btn-primary">Start</button>
-      <button id="stepBtn" onclick="stepOne()" disabled class="btn-primary">Next Step</button>
+      <button id="stepBtn" onclick="togglePlayback()" disabled class="btn-primary">Pause</button>
       <button onclick="resetUI()" class="btn-secondary">Reset</button>
       <span id="status" class="status"></span>
     </div>
@@ -33,7 +45,7 @@
     
     <!-- LEFT: Three agents side by side -->
     <div class="agents-panel">
-      <h3>Auction Participants</h3>
+      <h3 id="participantsHeading">Auction Participants</h3>
       <div class="agent-box" id="box-agg">
         <div class="agent-title">🔴 Aggressive Agent</div>
         <div class="bid-display" id="bid-agg">—</div>
@@ -83,11 +95,11 @@
 
     <!-- CENTER: Auction results & ToM beliefs -->
     <div class="auction-panel">
-      <h3>Auction Round Info</h3>
+      <h3 id="roundInfoHeading">Auction Round Info</h3>
       <div class="round-info">
         <div class="info-row">
           <span>Round</span>
-          <strong id="round-num">0 / 50</strong>
+          <strong id="round-num">0 / 15</strong>
         </div>
         <div class="info-row">
           <span>Phase</span>
@@ -108,15 +120,15 @@
       </div>
 
       <div class="winner-box">
-        <div class="label">This Round Winner</div>
+        <div class="label" id="winnerLabel">This Round Winner</div>
         <div class="trophy" id="trophy">—</div>
         <div id="winner-name">—</div>
         <div id="winner-prize" class="winner-prize">—</div>
       </div>
 
       <div class="tom-box">
-        <div class="label">Theory-of-Mind: What Smart Agent Believes</div>
-        <div class="tom-note">Smart agent infers opponent budgets and strategy from observing bids</div>
+        <div class="label" id="tomHeading">Theory-of-Mind: What Smart Agent Believes</div>
+        <div class="tom-note" id="tomNote">Smart agent infers opponent budgets and strategy from observing bids</div>
         <table id="tom-table">
           <tr>
             <th>Opponent</th>
@@ -143,14 +155,14 @@
       </div>
 
       <div class="signals-box">
-        <div class="label">Smart Agent Signals</div>
+        <div class="label" id="signalsHeading">Smart Agent Signals</div>
         <div class="signal-row">
-          <span>Exploit Signal</span>
+          <span id="exploitLabel">Exploit Signal</span>
           <div class="signal-bar" id="exploit-sig-bar"></div>
           <strong id="exploit-sig">—</strong>
         </div>
         <div class="signal-row">
-          <span>Uncertainty</span>
+          <span id="uncertaintyLabel">Uncertainty</span>
           <div class="signal-bar" id="uncert-sig-bar"></div>
           <strong id="uncert-sig">—</strong>
         </div>
@@ -159,10 +171,10 @@
 
     <!-- RIGHT: Reward breakdown & metrics -->
     <div class="metrics-panel">
-      <h3>RL Training Signals</h3>
+      <h3 id="trainingHeading">RL Training Signals</h3>
       
       <div class="reward-breakdown">
-        <div class="label">Reward Components (Last Round)</div>
+        <div class="label" id="rewardHeading">Reward Components (Last Round)</div>
         <div class="reward-row">
           <span>Value Component</span>
           <div class="bar-container">
@@ -198,7 +210,7 @@
       </div>
 
       <div class="metrics-box">
-        <div class="label">Episode Metrics</div>
+        <div class="label" id="metricsHeading">Episode Metrics</div>
         <div class="metric-row">
           <span>Total Value Won</span>
           <strong id="total-val">0</strong>
@@ -222,7 +234,7 @@
       </div>
 
       <div class="strategy-transitions">
-        <div class="label">Strategy Adaptations (Bandit Learning)</div>
+        <div class="label" id="adaptationHeading">Strategy Adaptations (Bandit Learning)</div>
         <div id="transitions-list" class="transitions-list"></div>
       </div>
     </div>
@@ -231,11 +243,11 @@
 
   <div class="charts-row">
     <div class="chart-container">
-      <h3>Cumulative Reward (Training Signal)</h3>
+      <h3 id="rewardChartHeading">Cumulative Reward (Training Signal)</h3>
       <canvas id="rewardChart"></canvas>
     </div>
     <div class="chart-container">
-      <h3>Bid Comparison Over Time</h3>
+      <h3 id="bidChartHeading">Bid Comparison Over Time</h3>
       <canvas id="bidChart"></canvas>
     </div>
   </div>

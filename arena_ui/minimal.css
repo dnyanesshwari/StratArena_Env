@@ -63,7 +63,7 @@ body {
   font-weight: 500;
 }
 
-select, .btn-primary, .btn-secondary {
+select, input[type="number"], .btn-primary, .btn-secondary {
   padding: 8px 14px;
   background: #2d3748;
   border: 1px solid #4b5563;
@@ -75,9 +75,13 @@ select, .btn-primary, .btn-secondary {
   transition: all 0.2s;
 }
 
-select:hover, .btn-secondary:hover {
+select:hover, input[type="number"]:hover, .btn-secondary:hover {
   background: #374151;
   border-color: #60a5fa;
+}
+
+input[type="number"] {
+  width: 88px;
 }
 
 .btn-primary {
@@ -367,6 +371,7 @@ h3 {
 }
 
 .signal-bar {
+  --signal-width: 0%;
   flex: 1;
   height: 6px;
   background: #2d3748;
@@ -379,7 +384,7 @@ h3 {
   display: block;
   height: 100%;
   background: linear-gradient(90deg, #fbbf24, #f59e0b);
-  width: 0%;
+  width: var(--signal-width);
   transition: width 0.4s ease;
 }
 

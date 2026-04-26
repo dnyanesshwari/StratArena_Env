@@ -1,20 +1,38 @@
 """Minimal dashboard API - TRUTHFUL representation of StratArena mechanics."""
 
 from __future__ import annotations
+import sys
+from dataclasses import replace
+from pathlib import Path
+
+# Ensure the package root is importable when executing this module directly from the server/ folder.
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-import json
 import time
 from typing import Any
+from pydantic import BaseModel, Field
 
 from server.stratarena_environment import StratArenaEnvironment
 from models import StratArenaAction
 from inference import heuristic_allocation, AdaptiveStrategyController, StepTrace
 
 app = FastAPI(title="StratArena Dashboard")
+
+
+SCENARIO_OPTIONS = {"auction", "negotiation", "resource_allocation"}
+
+
+class StartEpisodeRequest(BaseModel):
+    task: str = "medium"
+    scenario: str = "auction"
+    rounds: int = Field(default=15, ge=15)
+    seed: int | None = None
 
 # Enable CORS
 app.add_middleware(
@@ -38,19 +56,47 @@ if UI_PATH.exists():
 class EpisodeSession:
     """Tracks one running episode."""
     
-    def __init__(self, episode_id: str, task: str, seed: int | None = None):
+    def __init__(
+        self,
+        episode_id: str,
+        task: str,
+        seed: int | None = None,
+        scenario: str = "auction",
+        rounds: int = 15,
+    ):
         self.episode_id = episode_id
         self.task = task
         self.seed = seed
+        self.scenario = scenario if scenario in SCENARIO_OPTIONS else "auction"
+        self.rounds = max(15, int(rounds))
         self.env = StratArenaEnvironment()
         self.obs = self.env.reset(task=task, seed=seed)
+        self._override_rounds()
         self.controller = AdaptiveStrategyController(task)
         
         self.step_count = 0
+        self.trace: list[StepTrace] = []
         self.history: list[dict[str, Any]] = []
         self.prev_bids = {"aggressive": 0.0, "conservative": 0.0, "me": 0.0}
         self.is_done = False
         self.last_reward = 0.0
+
+    def _override_rounds(self) -> None:
+        base_max_steps = max(int(self.env.task.max_steps), 1)
+        regime_shift_step = self.env.task.regime_shift_step
+        scaled_shift = None
+        if regime_shift_step is not None:
+            scaled_shift = max(1, min(self.rounds - 1, round((regime_shift_step / base_max_steps) * self.rounds)))
+
+        self.env.task = replace(
+            self.env.task,
+            max_steps=self.rounds,
+            regime_shift_step=scaled_shift,
+        )
+        self.env.max_steps = self.rounds
+        self.obs.max_steps = self.rounds
+        if isinstance(self.obs.metadata, dict):
+            self.obs.metadata["regime_shift_step"] = scaled_shift
         
     def step_one(self) -> dict[str, Any]:
         """Execute one step and return UI-ready data."""
@@ -58,10 +104,10 @@ class EpisodeSession:
             raise ValueError("Episode already done")
         
         # 1. Update strategy controller with last reward (bandit learning)
-        current_strategy = self.controller.update(self.obs, self.history, self.step_count, self.last_reward)
+        current_strategy = self.controller.update(self.obs, self.trace, self.step_count, self.last_reward)
         
         # 2. Get smart agent action (heuristic + adaptive strategy)
-        allocation, reason = heuristic_allocation(self.obs, self.history, current_strategy)
+        allocation, reason = heuristic_allocation(self.obs, self.trace, current_strategy)
         
         # 3. Step environment
         self.obs = self.env.step(StratArenaAction(allocation=allocation))
@@ -104,6 +150,7 @@ class EpisodeSession:
             "step": self.step_count,
             "max_steps": self.env.max_steps,
             "done": self.is_done,
+            "scenario": self.scenario,
             
             # Auction results (ACTUAL)
             "winner": winner,
@@ -166,6 +213,18 @@ class EpisodeSession:
             # Running metrics
             "metrics": metrics,
         }
+
+        self.trace.append(
+            StepTrace(
+                step=self.step_count,
+                allocation=float(allocation),
+                reward=float(self.last_reward),
+                exploit_signal=float(self.env.tom_tracker.get_exploit_signal()),
+                task_score=float(getattr(self.obs, "task_score", 0.0)),
+                winner=winner,
+                strategy=current_strategy,
+            )
+        )
         
         # Update state
         self.prev_bids = {
@@ -197,17 +256,24 @@ async def serve_ui():
 
 
 @app.post("/api/episode/start")
-async def start_episode(task: str = "medium", seed: int | None = None):
+async def start_episode(payload: StartEpisodeRequest):
     """Start a new episode."""
-    episode_id = f"{task}_{int(time.time()*1000)}"
+    episode_id = f"{payload.scenario}_{payload.task}_{int(time.time()*1000)}"
     try:
-        session = EpisodeSession(episode_id, task, seed)
+        session = EpisodeSession(
+            episode_id,
+            payload.task,
+            payload.seed,
+            scenario=payload.scenario,
+            rounds=payload.rounds,
+        )
         _sessions[episode_id] = session
         
         return {
             "success": True,
             "episode_id": episode_id,
-            "task": task,
+            "task": payload.task,
+            "scenario": session.scenario,
             "max_steps": session.env.max_steps,
             "initial_budget": session.env.initial_budget,
         }
@@ -258,6 +324,7 @@ async def get_episode_summary(episode_id: str):
     return {
         "episode_id": episode_id,
         "task": session.task,
+        "scenario": session.scenario,
         "score": score,
         "total_steps": session.step_count,
         "history_length": len(session.history),
